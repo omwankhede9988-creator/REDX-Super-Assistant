@@ -33,8 +33,7 @@ jobs:
           libswscale-dev \
           libavformat-dev \
           libavcodec-dev \
-          zlib1g-dev \
-          libncurses5
+          zlib1g-dev
 
     - name: Install Buildozer and Cython
       run: |

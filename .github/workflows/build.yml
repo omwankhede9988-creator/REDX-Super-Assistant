@@ -42,7 +42,7 @@ jobs:
 
     - name: Build APK with Buildozer
       run: |
-        yes | sdkmanager --licenses || true
+        export PATH=$PATH:~/.local/bin
         buildozer -v android debug
 
     - name: Upload APK
@@ -50,4 +50,3 @@ jobs:
       with:
         name: package
         path: bin/*.apk
-

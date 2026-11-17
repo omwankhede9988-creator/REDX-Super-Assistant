@@ -9,6 +9,9 @@ package.name = redxassistant
 # (str) Package domain (needed for android packaging)
 package.domain = org.redx
 
+# (str) Source directory where the application files are located
+source.dir = .
+
 # (list) Source files to include (let it match your main file, e.g., main.py)
 source.include_exts = py,png,jpg,kv,atlas
 
@@ -20,6 +23,9 @@ source.exclude_dirs = bin venv .git
 
 # (list) Application requirements
 requirements = python3,kivy
+
+# (str) Application versioning
+version = 0.1
 
 # (str) Supported orientations
 orientation = portrait

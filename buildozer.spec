@@ -15,6 +15,9 @@ source.dir = .
 # (list) Source files to include (let it be empty to include all)
 source.include_exts = py,png,jpg,kv,atlas
 
+# (str) Application versioning
+version = 1.0
+
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
 requirements = python3,kivy,requests
@@ -39,4 +42,3 @@ android.minapi = 21
 
 # (str) Android NDK version to use
 # android.ndk = 25b
-

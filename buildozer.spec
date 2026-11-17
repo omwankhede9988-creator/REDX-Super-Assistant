@@ -19,7 +19,6 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0
 
 # (list) Application requirements
-# comma separated e.g. requirements = sqlite3,kivy
 requirements = python3,kivy,requests
 
 # (str) Supported orientations
@@ -38,7 +37,7 @@ android.api = 33
 android.minapi = 21
 
 # (str) Android SDK version to use
-# android.sdk = 20
+android.sdk = 33
 
 # (str) Android NDK version to use
-# android.ndk = 25b
+android.ndk = 25b

@@ -43,6 +43,9 @@ jobs:
     - name: Build APK with Buildozer
       run: |
         export PATH=$PATH:~/.local/bin
+        mkdir -p ~/.android
+        echo '### License accepted' > ~/.android/repositories.cfg
+        yes | sdkmanager --licenses || true
         buildozer -v android debug
 
     - name: Upload APK

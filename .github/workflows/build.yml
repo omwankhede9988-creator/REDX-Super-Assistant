@@ -46,6 +46,7 @@ jobs:
             pkg-config \
             zip \
             unzip \
+            wget \
             libffi-dev \
             libssl-dev
 
@@ -54,19 +55,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir cython==0.29.36 buildozer
 
-      - name: Accept Android SDK licenses and build APK
+      - name: Setup Android SDK and Build APK
         env:
           ANDROID_HOME: /home/runner/.buildozer/android/platform/android-sdk
+          ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
           JAVA_OPTS: "-Xmx4g -Xms1g"
           _JAVA_OPTIONS: "-Xmx4g -Xms1g"
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
         run: |
           export PATH=$PATH:~/.local/bin
-          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
-          yes | buildozer android debug || true
-          if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          fi
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses || true
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-33" "build-tools;33.0.2"
           buildozer -v android debug
 
       - name: Upload APK artifact

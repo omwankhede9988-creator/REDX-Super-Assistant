@@ -25,7 +25,7 @@ source.exclude_dirs = tests, bin, venv, .git, __pycache__
 version = 0.1
 
 # (list) Application requirements (comma separated e.g. requirements = sqlite3,kivy)
-requirements = python3,kivy
+requirements = python3==3.11.10,kivy
 
 # (str) Supported orientations (landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -57,9 +57,6 @@ android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
 # (str) python-for-android branch to use
 p4a.branch = master
 
-# (str) python-for-android python version
-p4a.python_version = 3.11
-
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
@@ -67,3 +64,4 @@ log_level = 2
 
 # (int) Display warning if run as root (0 = no, 1 = yes)
 warn_on_root = 1
+

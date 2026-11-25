@@ -48,8 +48,7 @@ jobs:
           yes | ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
           ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.1.8937393"
           cd ${{ github.workspace }}
-          rm -rf .buildozer/android/platform/build-*
-          buildozer android clean
+          mkdir -p .buildozer/android/platform
           buildozer android debug
 
       - name: Upload APK artifact
@@ -58,3 +57,4 @@ jobs:
         with:
           name: REDX-Super-Assistant-APK
           path: bin/*.apk
+

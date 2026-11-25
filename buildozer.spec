@@ -30,16 +30,6 @@ requirements = python3,kivy
 # (str) Supported orientations (landscape, sensorLandscape, portrait or all)
 orientation = portrait
 
-#
-# OSX Specific
-#
-#
-
-#
-# Android specific
-#
-#
-
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 0
 
@@ -64,14 +54,13 @@ android.accept_sdk_license = True
 # (str) Android SDK path
 android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
 
-# (bool) Copy library instead of making a libpymodules.so
-#android.copy_libs = 1
+# (str) python-for-android branch to use
+p4a.branch = master
 
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = 2
+log_level = 1
 
 # (int) Display warning if run as root (0 = no, 1 = yes)
 warn_on_root = 1
-

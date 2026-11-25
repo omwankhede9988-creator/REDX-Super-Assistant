@@ -74,10 +74,11 @@ jobs:
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses || true
           yes | sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-          buildozer -v android debug
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: REDX-APK
           path: bin/*.apk
+

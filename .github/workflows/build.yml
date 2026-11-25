@@ -2,7 +2,7 @@ name: Build REDX APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install system dependencies
         run: |
@@ -45,7 +45,9 @@ jobs:
             m4 \
             pkg-config \
             zip \
-            unzip
+            unzip \
+            libffi-dev \
+            libssl-dev
 
       - name: Install Buildozer and Cython
         run: |
@@ -55,8 +57,12 @@ jobs:
       - name: Accept Android SDK licenses and build APK
         env:
           ANDROID_HOME: /home/runner/.buildozer/android/platform/android-sdk
+          JAVA_OPTS: "-Xmx4g -Xms1g"
+          _JAVA_OPTIONS: "-Xmx4g -Xms1g"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
         run: |
           export PATH=$PATH:~/.local/bin
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
           yes | buildozer android debug || true
           if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
             yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true

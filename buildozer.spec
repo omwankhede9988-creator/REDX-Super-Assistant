@@ -60,7 +60,7 @@ p4a.branch = master
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = 1
+log_level = 2
 
 # (int) Display warning if run as root (0 = no, 1 = yes)
 warn_on_root = 1

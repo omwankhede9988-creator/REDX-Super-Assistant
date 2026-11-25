@@ -57,6 +57,9 @@ android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
 # (str) python-for-android branch to use
 p4a.branch = master
 
+# (str) python-for-android python version
+p4a.python_version = 3.11
+
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))

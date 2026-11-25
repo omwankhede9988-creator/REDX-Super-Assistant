@@ -25,7 +25,7 @@ source.exclude_dirs = tests, bin, venv, .git, __pycache__
 version = 0.1
 
 # (list) Application requirements (comma separated e.g. requirements = sqlite3,kivy)
-requirements = python3==3.11.10,kivy
+requirements = kivy
 
 # (str) Supported orientations (landscape, sensorLandscape, portrait or all)
 orientation = portrait

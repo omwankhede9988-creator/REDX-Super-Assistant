@@ -24,7 +24,7 @@ source.exclude_dirs = tests, bin, venv, .git, __pycache__
 # (str) Application versioning (method 1)
 version = 0.1
 
-# (list) Application requirements (comma separated e.g: requirements = sqlite3,kivy)
+# (list) Application requirements (comma separated e.g. requirements = sqlite3,kivy)
 requirements = python3,kivy
 
 # (str) Supported orientations (landscape, sensorLandscape, portrait or all)
@@ -33,9 +33,11 @@ orientation = portrait
 #
 # OSX Specific
 #
+#
 
 #
 # Android specific
+#
 #
 
 # (bool) Indicate if the application should be fullscreen or not
@@ -59,6 +61,9 @@ android.archs = arm64-v8a
 # (bool) enables auto-approval of licenses during SDK/NDK installation
 android.accept_sdk_license = True
 
+# (str) Android SDK path
+android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
+
 # (bool) Copy library instead of making a libpymodules.so
 #android.copy_libs = 1
 
@@ -69,3 +74,4 @@ log_level = 2
 
 # (int) Display warning if run as root (0 = no, 1 = yes)
 warn_on_root = 1
+

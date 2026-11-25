@@ -38,7 +38,11 @@ jobs:
             zlib1g-dev \
             openjdk-17-jdk \
             autoconf \
+            automake \
             libtool \
+            libtool-bin \
+            libltdl-dev \
+            m4 \
             pkg-config \
             zip \
             unzip

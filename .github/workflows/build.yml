@@ -2,8 +2,7 @@ name: Build REDX APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -24,46 +23,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
             cmake libffi-dev libssl-dev
 
       - name: Install Buildozer and Cython
         run: |
-          pip install --upgrade pip setuptools wheel
-          pip install buildozer cython virtualenv
+          python -m pip install --upgrade pip
+          pip install --upgrade buildozer cython==0.29.36 virtualenv setuptools
 
-      - name: Set up Android SDK and Build APK
-        env:
-          ANDROID_HOME: /home/runner/.buildozer/android/platform/android-sdk
-          ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
-          _JAVA_OPTIONS: "-Xmx4g -Xms512m"
+      - name: Build APK with Buildozer
         run: |
-          set -e
+          buildozer android debug
           ls -la
-          head -n 30 main.py || true
-          mkdir -p /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
-          cd /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-          rm cmdline-tools.zip
-          mkdir -p /home/runner/.buildozer/android/platform/android-sdk/tools/bin
-          ln -sf /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager /home/runner/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          yes | ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
-          ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-          cd ${{ github.workspace }}
-          sed -i 's/log_level = 2/log_level = 1/' buildozer.spec
-          mkdir -p .buildozer/android/platform
-          buildozer android debug 2>&1 | tee buildozer.log
-          mkdir -p bin
-          find . -name "*.apk" -exec cp -v {} bin/ \;
           ls -la bin/ || true
+
+      - name: Check generated APK files
+        run: |
+          find . -maxdepth 4 -name "*.apk" -ls
 
       - name: Upload APK artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: REDX-Super-Assistant-APK
-          path: bin/*.apk
-
+          name: REDX-APK
+          path: "**/*.apk"
+          if-no-files-found: warn

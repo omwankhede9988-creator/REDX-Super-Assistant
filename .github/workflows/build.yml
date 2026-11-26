@@ -35,8 +35,7 @@ jobs:
       - name: Clean stale build cache and build APK
         run: |
           export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
-          rm -rf ~/.buildozer/android/platform/build-*/build/other_builds/libffi* \
-                 ~/.buildozer/android/platform/build-*/dists/redxassistant || true
+          rm -rf .buildozer ~/.buildozer
           buildozer android debug
 
       - name: Check generated APK files

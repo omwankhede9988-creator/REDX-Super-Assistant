@@ -23,7 +23,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             git zip unzip openjdk-17-jdk autoconf automake autotools-dev \
-            libtool libtool-bin libtool-dev m4 gettext pkg-config \
+            libtool libtool-bin m4 gettext pkg-config \
             zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 libncurses-dev \
             cmake libffi-dev libssl-dev lld python3-setuptools
 
@@ -34,6 +34,7 @@ jobs:
 
       - name: Clean stale build cache and build APK
         run: |
+          export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
           rm -rf ~/.buildozer/android/platform/build-*/build/other_builds/libffi* \
                  ~/.buildozer/android/platform/build-*/dists/redxassistant || true
           buildozer android debug

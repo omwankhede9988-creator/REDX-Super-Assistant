@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git zip unzip wget curl aria2 openjdk-17-jdk autoconf automake autotools-dev \
+            git zip unzip wget curl openjdk-17-jdk autoconf automake autotools-dev \
             libtool libtool-bin libltdl-dev m4 gettext pkg-config \
             zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 libncurses-dev \
             cmake libffi-dev libssl-dev lld python3-setuptools
@@ -32,16 +32,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade buildozer==1.5.0 "python-for-android==2024.1.21" "cython==0.29.36" "sh<2.0,>=1.10" virtualenv setuptools
 
-      - name: Prepare cache and build APK
+      - name: Install Android NDK and build APK
         run: |
           export ACLOCAL_PATH="/usr/share/aclocal:${ACLOCAL_PATH:-}"
           rm -rf .buildozer ~/.buildozer
-          mkdir -p ~/.buildozer/android/packages
-          wget -c --tries=10 --timeout=30 \
-            "https://dl.google.com/android/repository/android-ndk-r27.2.12479018-linux.zip" \
-            -O ~/.buildozer/android/packages/android-ndk-r27.2.12479018-linux.zip || true
-          ls -lh ~/.buildozer/android/packages/
-          buildozer android debug || buildozer android debug
+          mkdir -p ~/.buildozer/android/platform/android-sdk
+
+          curl -fL --retry 5 --retry-delay 5 \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+            -o /tmp/cmdline-tools.zip
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-extracted
+          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+          mv /tmp/cmdline-extracted/cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
+
+          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+            --sdk_root="$HOME/.buildozer/android/platform/android-sdk" \
+            "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;27.2.12479018"
+
+          ln -sfn "$HOME/.buildozer/android/platform/android-sdk/ndk/27.2.12479018" \
+            "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018"
+
+          buildozer android debug
 
       - name: Check generated APK files
         run: |
@@ -54,3 +65,4 @@ jobs:
           name: REDX-APK
           path: "**/*.apk"
           if-no-files-found: warn
+

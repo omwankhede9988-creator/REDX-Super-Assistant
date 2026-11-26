@@ -24,18 +24,17 @@ jobs:
           sudo apt-get install -y \
             git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 libncurses-dev \
-            cmake libffi-dev libssl-dev
+            cmake libffi-dev libssl-dev lld
 
       - name: Install Buildozer and Cython
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade buildozer cython==0.29.36 virtualenv setuptools
 
-      - name: Build APK with Buildozer
+      - name: Clean stale build cache and build APK
         run: |
+          rm -rf ~/.buildozer/android/platform/build-*/dists/redxassistant || true
           buildozer android debug
-          ls -la
-          ls -la bin/ || true
 
       - name: Check generated APK files
         run: |

@@ -40,6 +40,7 @@ jobs:
           _JAVA_OPTIONS: "-Xmx4g -Xms512m"
         run: |
           set -e
+          ls -la
           mkdir -p /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
           cd /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
@@ -53,9 +54,10 @@ jobs:
           cd ${{ github.workspace }}
           sed -i 's/log_level = 2/log_level = 1/' buildozer.spec
           mkdir -p .buildozer/android/platform
-          buildozer android debug 2>&1 | tee buildozer.log || (echo "=== LAST 80 LOG LINES ===" && tail -n 80 buildozer.log && exit 1)
-          find . -maxdepth 4 -name "*.apk"
-          mkdir -p bin && find . -maxdepth 4 -name "*.apk" -exec cp {} bin/ \;
+          buildozer android debug 2>&1 | tee buildozer.log || (echo "=== LAST 100 LOG LINES ===" && tail -n 100 buildozer.log && exit 1)
+          mkdir -p bin
+          find . -maxdepth 6 -name "*.apk" -exec cp -v {} bin/ \;
+          ls -la bin/ || true
 
       - name: Upload APK artifact
         if: always()

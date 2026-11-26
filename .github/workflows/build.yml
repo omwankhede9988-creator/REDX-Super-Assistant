@@ -54,7 +54,10 @@ jobs:
           EXIT_CODE=$?
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
-            tail -n 120 /tmp/buildozer.log > error_tail.txt
+            echo "===== KEY ERROR LINES ====="
+            grep -E -i "error:|exception|failed|cannot find|no such file|permission denied|clang:|ld\.lld|command not found|missing" /tmp/buildozer.log | tail -n 35 || true
+            echo "===== LAST 40 LINES ====="
+            tail -n 40 /tmp/buildozer.log > error_tail.txt
             cat error_tail.txt
             exit "$EXIT_CODE"
           fi
@@ -75,3 +78,4 @@ jobs:
           name: REDX-Error-Log
           path: error_tail.txt
           if-no-files-found: ignore
+

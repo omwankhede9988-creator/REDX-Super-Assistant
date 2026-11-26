@@ -39,6 +39,7 @@ jobs:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
           _JAVA_OPTIONS: "-Xmx4g -Xms512m"
         run: |
+          set -e
           mkdir -p /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
           cd /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
@@ -50,8 +51,9 @@ jobs:
           yes | ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses
           ./latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
           cd ${{ github.workspace }}
+          sed -i 's/log_level = 2/log_level = 1/' buildozer.spec
           mkdir -p .buildozer/android/platform
-          buildozer android debug
+          buildozer android debug 2>&1 | tee buildozer.log || (echo "=== LAST 80 LOG LINES ===" && tail -n 80 buildozer.log && exit 1)
 
       - name: Upload APK artifact
         if: always()
@@ -59,4 +61,3 @@ jobs:
         with:
           name: REDX-Super-Assistant-APK
           path: bin/*.apk
-

@@ -22,7 +22,7 @@ jobs:
       - name: Install system tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw6 libtinfo5 cmake libffi-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
 
       - name: Install Buildozer and Cython
         run: |
@@ -73,30 +73,15 @@ jobs:
           else:
               text += "\np4a.branch = master\n"
 
-          def clean_reqs(match):
-              prefix = match.group(1)
-              raw = match.group(2)
-              parts = [p.strip() for p in raw.split(",") if p.strip()]
-              cleaned = []
-              for p in parts:
-                  low = p.lower()
-                  if low == "android" or low.startswith("android=="):
-                      continue
-                  if low.startswith("kivy"):
-                      p = "kivy==2.3.0"
-                  elif low.startswith("pyjnius"):
-                      p = "pyjnius"
-                  if p not in cleaned:
-                      cleaned.append(p)
-              if "python3" not in cleaned:
-                  cleaned.insert(0, "python3")
-              return prefix + ",".join(cleaned)
-
-          text = re.sub(r'(?m)^(\s*requirements\s*=\s*)(.+)$', clean_reqs, text)
+          safe_reqs = "requirements = python3,kivy==2.3.0,pyjnius,requests,urllib3,charset-normalizer"
+          if re.search(r'(?m)^#?\s*requirements\s*=', text):
+              text = re.sub(r'(?m)^#?\s*requirements\s*=.*', safe_reqs, text)
+          else:
+              text += "\n" + safe_reqs + "\n"
 
           with open(spec_path, "w", encoding="utf-8") as f:
               f.write(text)
-          print("Updated buildozer.spec successfully.")
+          print("Updated buildozer.spec requirements:", safe_reqs)
           EOF
 
       - name: Patch libffi recipe before build
@@ -124,6 +109,24 @@ jobs:
           unset PIP_CONSTRAINT || true
           export PATH="$JAVA_HOME/bin:$PATH"
           mkdir -p /tmp/clang-wrap
+          ndk_bin="/home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          if [ -d "$ndk_bin" ]; then
+            for tool in "$ndk_bin"/*clang*; do
+              [ -f "$tool" ] || continue
+              tname="$(basename "$tool")"
+              cat <<EOF > "/tmp/clang-wrap/$tname"
+          #!/usr/bin/env bash
+          filtered=()
+          for arg in "\$@"; do
+            if [ "\$arg" != "-print-multi-os-directory" ]; then
+              filtered+=("\$arg")
+            fi
+          done
+          exec "$tool" "\${filtered[@]}"
+          EOF
+              chmod +x "/tmp/clang-wrap/$tname"
+            done
+          fi
           cat <<'EOF' > /tmp/clang-wrap/clang
           #!/usr/bin/env bash
           filtered=()

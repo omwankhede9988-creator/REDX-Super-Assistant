@@ -164,21 +164,21 @@ jobs:
           EXIT_CODE=$?
           if [ "$EXIT_CODE" -ne 0 ] && grep -q "weakproxy.c:17799:87: error: too few arguments to function call" /tmp/buildozer.log; then
             python3 - <<'EOF'
-            import glob, re
+          import glob, re
 
-            for path in glob.glob(".buildozer/**/kivy/weakproxy.c", recursive=True):
-                with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                    lines = f.readlines()
-                if len(lines) >= 17799:
-                    idx = 17798
-                    line = lines[idx]
-                    m = re.search(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;]*)\)\s*;', line)
-                    if m and len([x for x in m.group(2).split(",") if x.strip()]) == 5:
-                        lines[idx] = re.sub(r'\)\s*;', ', NULL);', line)
-                        with open(path, "w", encoding="utf-8") as f:
-                            f.writelines(lines)
-                        print("Patched weakproxy.c at line 17799")
-            EOF
+          for path in glob.glob(".buildozer/**/kivy/weakproxy.c", recursive=True):
+              with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                  lines = f.readlines()
+              if len(lines) >= 17799:
+                  idx = 17798
+                  line = lines[idx]
+                  m = re.search(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;]*)\)\s*;', line)
+                  if m and len([x for x in m.group(2).split(",") if x.strip()]) == 5:
+                      lines[idx] = re.sub(r'\)\s*;', ', NULL);', line)
+                      with open(path, "w", encoding="utf-8") as f:
+                          f.writelines(lines)
+                      print("Patched weakproxy.c at line 17799")
+          EOF
             buildozer android debug >> /tmp/buildozer.log 2>&1
             EXIT_CODE=$?
           fi

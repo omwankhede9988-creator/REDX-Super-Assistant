@@ -123,30 +123,23 @@ jobs:
         run: |
           unset PIP_CONSTRAINT || true
           export PATH="$JAVA_HOME/bin:$PATH"
-          python3 - <<'EOF'
-          import os
-
-          ndk_bin_dir = "/home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          if os.path.isdir(ndk_bin_dir):
-              for name in os.listdir(ndk_bin_dir):
-                  if "clang" in name and not name.endswith(".real"):
-                      full_path = os.path.join(ndk_bin_dir, name)
-                      real_path = full_path + ".real"
-                      if os.path.isfile(full_path) and not os.path.islink(full_path) and not os.path.exists(real_path):
-                          os.rename(full_path, real_path)
-                          with open(full_path, "w", encoding="utf-8") as wf:
-                              wf.write(
-                                  "#!/usr/bin/env bash\n"
-                                  "args=()\n"
-                                  "for a in \"$@\"; do\n"
-                                  "  if [ \"$a\" != \"-print-multi-os-directory\" ]; then\n"
-                                  "    args+=(\"$a\")\n"
-                                  "  fi\n"
-                                  "done\n"
-                                  f"exec \"{real_path}\" \"${{args[@]}}\"\n"
-                              )
-                          os.chmod(full_path, 0o755)
+          mkdir -p /tmp/clang-wrap
+          cat <<'EOF' > /tmp/clang-wrap/clang
+          #!/usr/bin/env bash
+          filtered=()
+          for arg in "$@"; do
+            if [ "$arg" != "-print-multi-os-directory" ]; then
+              filtered+=("$arg")
+            fi
+          done
+          real_clang="$(command -v -p clang | grep -v '^/tmp/clang-wrap/' | head -n 1)"
+          if [ -z "$real_clang" ]; then
+            real_clang="/usr/bin/clang"
+          fi
+          exec "$real_clang" "${filtered[@]}"
           EOF
+          chmod +x /tmp/clang-wrap/clang
+          export PATH="/tmp/clang-wrap:$PATH"
           set +e
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?

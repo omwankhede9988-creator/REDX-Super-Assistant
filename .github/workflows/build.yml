@@ -160,44 +160,10 @@ jobs:
           chmod +x /tmp/clang-wrap/clang
           export PATH="/tmp/clang-wrap:$PATH"
 
-          for attempt in 1 2 3; do
-            set +e
-            buildozer android debug > /tmp/buildozer.log 2>&1
-            EXIT_CODE=$?
-            set -e
-            if [ "$EXIT_CODE" -eq 0 ]; then
-              break
-            fi
-
-            python3 - <<'EOF'
-          import glob, os, re
-
-          fixed_any = False
-          with open("/tmp/buildozer.log", "r", encoding="utf-8", errors="ignore") as lf:
-              log_text = lf.read()
-
-          for m in re.finditer(r'([^\s:]+\.c):(\d+):\d+:\s*error:\s*too few arguments to function call,\s*expected\s+6,\s*have\s+5', log_text):
-              cpath = m.group(1)
-              lineno = int(m.group(2))
-              candidates = [cpath] if os.path.isabs(cpath) else (glob.glob(cpath) or glob.glob("**/" + os.path.basename(cpath), recursive=True))
-              for fp in candidates:
-                  try:
-                      with open(fp, "r", encoding="utf-8", errors="ignore") as f:
-                          lines = f.readlines()
-                      if 1 <= lineno <= len(lines):
-                          idx = lineno - 1
-                          rparen = lines[idx].rfind(")")
-                          if rparen != -1 and ", NULL" not in lines[idx]:
-                              lines[idx] = lines[idx][:rparen] + ", NULL" + lines[idx][rparen:]
-                              with open(fp, "w", encoding="utf-8") as f:
-                                  f.writelines(lines)
-                              print(f"Patched {fp}:{lineno}")
-                              fixed_any = True
-                  except Exception as e:
-                      print("Skip patch:", e)
-          print("fixed_any =", fixed_any)
-          EOF
-          done
+          set +e
+          buildozer android debug > /tmp/buildozer.log 2>&1
+          EXIT_CODE=$?
+          set -e
 
           if [ "$EXIT_CODE" -ne 0 ]; then
             python3 - <<'EOF'
@@ -237,3 +203,4 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

@@ -6,9 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  PIP_CONSTRAINT: "charset-normalizer<3.5.0"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,6 +26,8 @@ jobs:
 
       - name: Install Buildozer and Cython
         run: |
+          echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
+          export PIP_CONSTRAINT="/tmp/constraints.txt"
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython<3.0" buildozer
 
@@ -49,8 +48,6 @@ jobs:
           ln -sfn "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018" "$PWD/.buildozer/android/platform/android-ndk-r27.2.12479018"
 
       - name: Build Android APK
-        env:
-          PIP_CONSTRAINT: "/tmp/constraints.txt"
         run: |
           set +e
           echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
@@ -83,3 +80,4 @@ jobs:
           name: REDX-Error-Log
           path: error_tail.txt
           if-no-files-found: ignore
+

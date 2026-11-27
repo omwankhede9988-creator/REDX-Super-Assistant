@@ -22,12 +22,13 @@ jobs:
       - name: Install system tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libtool-bin libltdl-dev pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-bin libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
 
       - name: Install Buildozer and Cython
         run: |
-          printf "charset-normalizer<3.5.0\ncython<3.0\n" > /tmp/constraints.txt
-          export PIP_CONSTRAINT="/tmp/constraints.txt"
+          printf "charset-normalizer<3.5.0\ncyberthon<3.0\n" > /tmp/constraints.txt
+          echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
+          echo "ALOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython==0.29.36" buildozer
 
@@ -36,49 +37,44 @@ jobs:
           ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
           ANDROID_NDK_ROOT: /home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018
         run: |
-          export ACLOCAL_PATH="/usr/share/aclocal"
           rm -rf .buildozer ~/.buildozer
           mkdir -p ~/.buildozer/android/platform
-          mkdir -p "$PWD/.buildozer/android/platform"
+          mkdir -p "$ANDROID_NDK_ROOT"
           curl -fL --retry 5 --retry-delay 5 -o /tmp/cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
           unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-extracted
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
-          mv /tmp/cmdline-extracted/cmdline-tools ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv /tmp/cmdline-extracted/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-          ln -sfn ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          ln -sfn ~/.buildozer/android/platform/android-sdk "$PWD/.buildozer/android/platform/android-sdk"
-          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root="$HOME/.buildozer/android/platform/android-sdk" "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;27.2.12479018"
-          if [ -d "$HOME/.buildozer/android/platform/android-sdk/ndk/27.2.12479018" ]; then
-            ln -sfn "$HOME/.buildozer/android/platform/android-sdk/ndk/27.2.12479018" "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018"
+          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" ~/.buildozer/android/platform/android-sdk/tools/bin/avdmanager
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses || true
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;27.2.12479018"
+          if [ -d "$ANDROID_SDK_ROOT/ndk/27.2.12479018" ]; then
+            ln -sfn "$ANDROID_SDK_ROOT/ndk/27.2.12479018"/* "$ANDROID_NDK_ROOT/"
           fi
-          ln -sfn "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018" "$PWD/.buildozer/android/platform/android-ndk-r27.2.12479018"
+          ln -sfn "$ANDROID_NDK_ROOT" ~/.buildozer/android/platform/android-ndk-r27.2.12479018
 
       - name: Configure buildozer.spec
         run: |
           if [ -f buildozer.spec ]; then
-            sed -i 's/^#\?\s*android.api\s*=.*/android.api = 33/' buildozer.spec
-            sed -i 's/^#\?\s*android.minapi\s*=.*/android.minapi = 24/' buildozer.spec
-            sed -i 's/^#\?\s*android.ndk\s*=.*/android.ndk = 27.2.12479018/' buildozer.spec
-            sed -i 's/^#\?\s*android.accept_sdk_license\s*=.*/android.accept_sdk_license = True/' buildozer.spec
+            sed -i 's|^#*android.api\s*=.*|android.api = 34|' buildozer.spec
+            sed -i 's|^#*android.minapi\s*=.*|android.minapi = 24|' buildozer.spec
+            sed -i 's|^#*android.ndk\s*=.*|android.ndk = 27.2.12479018|' buildozer.spec
+            sed -i 's|^#*android.accept_sdk_license\s*=.*|android.accept_sdk_license = True|' buildozer.spec
           fi
 
       - name: Build Android APK
         run: |
+          set -e
           set +e
-          export ACLOCAL_PATH="/usr/share/aclocal"
-          printf "charset-normalizer<3.5.0\ncython<3.0\n" > /tmp/constraints.txt
-          export PIP_CONSTRAINT="/tmp/constraints.txt"
-          python -m pip install --upgrade "cython==0.29.36"
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
-            {
-              echo "===== ACTUAL ERRORS ====="
-              grep -i -E "error:|fatal error|undefined reference|no such file or directory|command failed|failed with exit code|no matching distribution|could not find|not resolved" /tmp/buildozer.log | grep -v "performance hint" | grep -v "webpdecoder_static" | tail -n 35 || true
-              echo "===== TAIL OF LOG ====="
-              tail -n 35 /tmp/buildozer.log
-            } > error_tail.txt
+            echo "=== ACTUAL ERRORS ==="
+            grep -i -E "error:|fatal error:|undefined reference|no such file or directory|command failed|failed with e" /tmp/buildozer.log | head -n 60 || true
+            echo "=== TAIL OF LOG ==="
+            tail -n 80 /tmp/buildozer.log > error_tail.txt
             cat error_tail.txt
             exit "$EXIT_CODE"
           fi
@@ -96,6 +92,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: REDX-Error-Log
+          name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

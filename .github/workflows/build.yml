@@ -29,18 +29,8 @@ jobs:
         run: |
           printf "charset-normalizer<3.5.0\ncyberthon<3.0\n" > /tmp/constraints.txt
           echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
-          ACLOCAL_DIRS="/usr/share/aclocal"
-          for d in /usr/share/aclocal-*; do
-            [ -d "$d" ] && ACLOCAL_DIRS="$ACLOCAL_DIRS:$d"
-          done
-          SYS_ACDIR="$(aclocal --print-ac-dir 2>/dev/null || true)"
-          if [ -n "$SYS_ACDIR" ] && [ -d "$SYS_ACDIR" ]; then
-            case ":$ACLOCAL_DIRS:" in
-              *":$SYS_ACDIR:"*) ;;
-              *) ACLOCAL_DIRS="$ACLOCAL_DIRS:$SYS_ACDIR" ;;
-            esac
-          fi
-          echo "ACLOCAL_PATH=$ACLOCAL_DIRS" >> $GITHUB_ENV
+          echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
+          echo "AUTORECONF=autoreconf -fiv -I /usr/share/aclocal" >> $GITHUB_ENV
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython==0.29.36" buildozer
 

@@ -164,20 +164,24 @@ jobs:
           EXIT_CODE=$?
           if [ "$EXIT_CODE" -ne 0 ] && grep -q "weakproxy.c:17799:87: error: too few arguments to function call" /tmp/buildozer.log; then
             python3 - <<'EOF'
-          import glob, re
+          import glob
 
           for path in glob.glob(".buildozer/**/kivy/weakproxy.c", recursive=True):
               with open(path, "r", encoding="utf-8", errors="ignore") as f:
                   lines = f.readlines()
+              start = max(0, 17795)
+              end = min(len(lines), 17804)
+              print(f"--- {path} ({start+1}..{end}) ---")
+              for i in range(start, end):
+                  print(f"{i+1}: {lines[i]}", end="")
               if len(lines) >= 17799:
                   idx = 17798
-                  line = lines[idx]
-                  m = re.search(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;]*)\)\s*;', line)
-                  if m and len([x for x in m.group(2).split(",") if x.strip()]) == 5:
-                      lines[idx] = re.sub(r'\)\s*;', ', NULL);', line)
+                  rparen = lines[idx].rfind(")")
+                  if rparen != -1:
+                      lines[idx] = lines[idx][:rparen] + ", NULL" + lines[idx][rparen:]
                       with open(path, "w", encoding="utf-8") as f:
                           f.writelines(lines)
-                      print("Patched weakproxy.c at line 17799")
+                      print("Patched line 17799 with , NULL")
           EOF
             buildozer android debug >> /tmp/buildozer.log 2>&1
             EXIT_CODE=$?
@@ -208,4 +212,3 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
-

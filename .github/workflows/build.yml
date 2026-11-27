@@ -24,13 +24,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --reinstall autoconf automake autoconf-archive libtool libltdl7 pkg-config
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip libssl-dev zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 cmake libffi-dev
+          for m4file in /usr/share/aclocal/libtool.m4 /usr/share/aclocal/lt*.m4; do
+            if [ -f "$m4file" ]; then
+              for verdir in /usr/share/aclocal-1.*; do
+                if [ -d "$verdir" ]; then
+                  sudo ln -sf "$m4file" "$verdir/$(basename "$m4file")"
+                fi
+              done
+            fi
+          done
 
       - name: Install Buildozer and Cython
         run: |
           printf "charset-normalizer<3.5.0\ncyberthon<3.0\n" > /tmp/constraints.txt
           echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
           echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
-          echo "AUTORECONF=autoreconf -fiv -I /usr/share/aclocal" >> $GITHUB_ENV
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython==0.29.36" buildozer
 
@@ -97,3 +105,4 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

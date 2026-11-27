@@ -26,10 +26,10 @@ jobs:
 
       - name: Install Buildozer and Cython
         run: |
-          echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
+          printf "charset-normalizer<3.5.0\ncython<3.0\n" > /tmp/constraints.txt
           export PIP_CONSTRAINT="/tmp/constraints.txt"
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install "cython<3.0" buildozer
+          python -m pip install "cython==0.29.36" buildozer
 
       - name: Setup SDK and NDK
         env:
@@ -66,15 +66,16 @@ jobs:
         run: |
           set +e
           export ACLOCAL_PATH="/usr/share/aclocal"
-          echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
+          printf "charset-normalizer<3.5.0\ncython<3.0\n" > /tmp/constraints.txt
           export PIP_CONSTRAINT="/tmp/constraints.txt"
+          python -m pip install --upgrade "cython==0.29.36"
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
             {
               echo "===== ACTUAL ERRORS ====="
-              grep -i -E "error:|fatal error|undefined reference|no such file or directory|command failed|failed with exit code|no matching distribution|could not find" /tmp/buildozer.log | grep -v "performance hint" | grep -v "webpdecoder_static" | tail -n 35 || true
+              grep -i -E "error:|fatal error|undefined reference|no such file or directory|command failed|failed with exit code|no matching distribution|could not find|not resolved" /tmp/buildozer.log | grep -v "performance hint" | grep -v "webpdecoder_static" | tail -n 35 || true
               echo "===== TAIL OF LOG ====="
               tail -n 35 /tmp/buildozer.log
             } > error_tail.txt
@@ -98,4 +99,3 @@ jobs:
           name: REDX-Error-Log
           path: error_tail.txt
           if-no-files-found: ignore
-

@@ -68,14 +68,16 @@ jobs:
           export ACLOCAL_PATH="/usr/share/aclocal"
           echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
           export PIP_CONSTRAINT="/tmp/constraints.txt"
-          buildozer android debug 2>&1 | tee /tmp/buildozer.log
-          EXIT_CODE=${PIPESTATUS[0]}
+          buildozer android debug > /tmp/buildozer.log 2>&1
+          EXIT_CODE=$?
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "===== KEY ERROR LINES ====="
-            grep -i -E "^error:|error: |no matching distribution|could not find|fatal error|command failed|not a supported wheel|http error 404|sdkmanager|autoreconf|undefined macro" /tmp/buildozer.log | grep -v "performance hint" | tail -n 30 || true
-            echo "===== LAST 40 LINES ====="
-            tail -n 40 /tmp/buildozer.log > error_tail.txt
+            {
+              echo "===== ACTUAL ERRORS ====="
+              grep -i -E "error:|fatal error|undefined reference|no such file or directory|command failed|failed with exit code|no matching distribution|could not find" /tmp/buildozer.log | grep -v "performance hint" | grep -v "webpdecoder_static" | tail -n 35 || true
+              echo "===== TAIL OF LOG ====="
+              tail -n 35 /tmp/buildozer.log
+            } > error_tail.txt
             cat error_tail.txt
             exit "$EXIT_CODE"
           fi

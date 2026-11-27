@@ -63,6 +63,11 @@ jobs:
             sed -i 's|^#*android.minapi\s*=.*|android.minapi = 24|' buildozer.spec
             sed -i 's|^#*android.ndk\s*=.*|android.ndk = 27.2.12479018|' buildozer.spec
             sed -i 's|^#*android.accept_sdk_license\s*=.*|android.accept_sdk_license = True|' buildozer.spec
+            if grep -q '^#*p4a.branch' buildozer.spec; then
+              sed -i 's|^#*p4a.branch\s*=.*|p4a.branch = master|' buildozer.spec
+            else
+              echo "p4a.branch = master" >> buildozer.spec
+            fi
           fi
 
       - name: Patch libffi recipe before build
@@ -88,6 +93,23 @@ jobs:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
         run: |
           export PATH="$JAVA_HOME/bin:$PATH"
+          mkdir -p /tmp/clang-wrap
+          cat <<'EOF' > /tmp/clang-wrap/clang
+          #!/usr/bin/env bash
+          args=()
+          for a in "$@"; do
+            if [ "$a" != "-print-multi-os-directory" ]; then
+              args+=("$a")
+            fi
+          done
+          REAL_CLANG="$(command -v -p clang | grep -v '^/tmp/clang-wrap/' | head -n 1)"
+          if [ -z "$REAL_CLANG" ]; then
+            REAL_CLANG="/usr/bin/clang"
+          fi
+          exec "$REAL_CLANG" "${args[@]}"
+          EOF
+          chmod +x /tmp/clang-wrap/clang
+          export PATH="/tmp/clang-wrap:$PATH"
           set +e
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?

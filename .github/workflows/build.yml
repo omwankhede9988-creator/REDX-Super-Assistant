@@ -97,7 +97,9 @@ jobs:
 
           with open(spec_path, "w", encoding="utf-8") as f:
               f.write("\n".join(new_lines) + "\n")
-          print("Updated buildozer.spec requirements:", safe_reqs)
+          for ln in new_lines:
+              if ln.startswith("requirements"):
+                  print("SPEC LINE:", ln)
           EOF
 
       - name: Patch libffi recipe before build
@@ -173,9 +175,9 @@ jobs:
               lines = f.readlines()
 
           print("=== ACTUAL ERRORS ===")
-          pat = re.compile(r'(error:|fatal error:|undefined reference|no such file or directory|command failed|failed with e)', re.I)
+          pat = re.compile(r'(fatal error:|undefined reference|no such file or directory|command failed|failed with e|ModuleNotFoundError|Could not find a version)', re.I)
           hits = [ln.rstrip() for ln in lines if pat.search(ln)]
-          for ln in hits[:40]:
+          for ln in hits[-35:]:
               print(ln)
 
           print("=== TAIL OF LOG ===")

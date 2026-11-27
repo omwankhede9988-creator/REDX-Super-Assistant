@@ -46,7 +46,19 @@ jobs:
           mv /tmp/cmdline-extracted/cmdline-tools ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
           ln -sfn ~/.buildozer/android/platform/android-sdk "$PWD/.buildozer/android/platform/android-sdk"
           yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root="$HOME/.buildozer/android/platform/android-sdk" "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;27.2.12479018"
+          if [ -d "$HOME/.buildozer/android/platform/android-sdk/ndk/27.2.12479018" ]; then
+            ln -sfn "$HOME/.buildozer/android/platform/android-sdk/ndk/27.2.12479018" "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018"
+          fi
           ln -sfn "$HOME/.buildozer/android/platform/android-ndk-r27.2.12479018" "$PWD/.buildozer/android/platform/android-ndk-r27.2.12479018"
+
+      - name: Configure buildozer.spec
+        run: |
+          if [ -f buildozer.spec ]; then
+            sed -i 's/^#\?\s*android.api\s*=.*/android.api = 33/' buildozer.spec
+            sed -i 's/^#\?\s*android.minapi\s*=.*/android.minapi = 24/' buildozer.spec
+            sed -i 's/^#\?\s*android.ndk\s*=.*/android.ndk = 27.2.12479018/' buildozer.spec
+            sed -i 's/^#\?\s*android.accept_sdk_license\s*=.*/android.accept_sdk_license = True/' buildozer.spec
+          fi
 
       - name: Build Android APK
         run: |
@@ -58,7 +70,7 @@ jobs:
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
             echo "===== KEY ERROR LINES ====="
-            grep -i -E "^error:|error: |no matching distribution|could not find|fatal error|command failed|not a supported wheel" /tmp/buildozer.log | grep -v "performance hint" | tail -n 30 || true
+            grep -i -E "^error:|error: |no matching distribution|could not find|fatal error|command failed|not a supported wheel|http error 404" /tmp/buildozer.log | grep -v "performance hint" | tail -n 30 || true
             echo "===== LAST 40 LINES ====="
             tail -n 40 /tmp/buildozer.log > error_tail.txt
             cat error_tail.txt

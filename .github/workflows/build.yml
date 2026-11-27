@@ -22,7 +22,7 @@ jobs:
       - name: Install system tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw6 libtinfo5 cmake libffi-dev
 
       - name: Install Buildozer and Cython
         run: |
@@ -56,19 +56,48 @@ jobs:
 
       - name: Configure buildozer.spec
         run: |
-          if [ -f buildozer.spec ]; then
-            sed -i 's|^#*android.api\s*=.*|android.api = 34|' buildozer.spec
-            sed -i 's|^#*android.minapi\s*=.*|android.minapi = 24|' buildozer.spec
-            sed -i 's|^#*android.ndk\s*=.*|android.ndk = 27.2.12479018|' buildozer.spec
-            sed -i 's|^#*android.accept_sdk_license\s*=.*|android.accept_sdk_license = True|' buildozer.spec
-            sed -i 's|kivy==2\.3\.1|kivy==2.3.0|g' buildozer.spec
-            sed -i 's|pyjnius==1\.7\.0|pyjnius|g' buildozer.spec
-            if grep -q '^#*p4a.branch' buildozer.spec; then
-              sed -i 's|^#*p4a.branch\s*=.*|p4a.branch = master|' buildozer.spec
-            else
-              echo "p4a.branch = master" >> buildozer.spec
-            fi
-          fi
+          python3 - <<'EOF'
+          import re
+
+          spec_path = "buildozer.spec"
+          with open(spec_path, "r", encoding="utf-8", errors="ignore") as f:
+              text = f.read()
+
+          text = re.sub(r'(?m)^#?\s*android\.api\s*=.*', 'android.api = 34', text)
+          text = re.sub(r'(?m)^#?\s*android\.minapi\s*=.*', 'android.minapi = 24', text)
+          text = re.sub(r'(?m)^#?\s*android\.ndk\s*=.*', 'android.ndk = 27.2.12479018', text)
+          text = re.sub(r'(?m)^#?\s*android\.accept_sdk_license\s*=.*', 'android.accept_sdk_license = True', text)
+
+          if re.search(r'(?m)^#?\s*p4a\.branch\s*=', text):
+              text = re.sub(r'(?m)^#?\s*p4a\.branch\s*=.*', 'p4a.branch = master', text)
+          else:
+              text += "\np4a.branch = master\n"
+
+          def clean_reqs(match):
+              prefix = match.group(1)
+              raw = match.group(2)
+              parts = [p.strip() for p in raw.split(",") if p.strip()]
+              cleaned = []
+              for p in parts:
+                  low = p.lower()
+                  if low == "android" or low.startswith("android=="):
+                      continue
+                  if low.startswith("kivy"):
+                      p = "kivy==2.3.0"
+                  elif low.startswith("pyjnius"):
+                      p = "pyjnius"
+                  if p not in cleaned:
+                      cleaned.append(p)
+              if "python3" not in cleaned:
+                  cleaned.insert(0, "python3")
+              return prefix + ",".join(cleaned)
+
+          text = re.sub(r'(?m)^(\s*requirements\s*=\s*)(.+)$', clean_reqs, text)
+
+          with open(spec_path, "w", encoding="utf-8") as f:
+              f.write(text)
+          print("Updated buildozer.spec successfully.")
+          EOF
 
       - name: Patch libffi recipe before build
         run: |
@@ -94,23 +123,30 @@ jobs:
         run: |
           unset PIP_CONSTRAINT || true
           export PATH="$JAVA_HOME/bin:$PATH"
-          mkdir -p /tmp/clang-wrap
-          cat <<'EOF' > /tmp/clang-wrap/clang
-          #!/usr/bin/env bash
-          args=()
-          for a in "$@"; do
-            if [ "$a" != "-print-multi-os-directory" ]; then
-              args+=("$a")
-            fi
-          done
-          REAL_CLANG="$(command -v -p clang | grep -v '^/tmp/clang-wrap/' | head -n 1)"
-          if [ -z "$REAL_CLANG" ]; then
-            REAL_CLANG="/usr/bin/clang"
-          fi
-          exec "$REAL_CLANG" "${args[@]}"
+          python3 - <<'EOF'
+          import os
+
+          ndk_bin_dir = "/home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          if os.path.isdir(ndk_bin_dir):
+              for name in os.listdir(ndk_bin_dir):
+                  if "clang" in name and not name.endswith(".real"):
+                      full_path = os.path.join(ndk_bin_dir, name)
+                      real_path = full_path + ".real"
+                      if os.path.isfile(full_path) and not os.path.islink(full_path) and not os.path.exists(real_path):
+                          os.rename(full_path, real_path)
+                          with open(full_path, "w", encoding="utf-8") as wf:
+                              wf.write(
+                                  "#!/usr/bin/env bash\n"
+                                  "args=()\n"
+                                  "for a in \"$@\"; do\n"
+                                  "  if [ \"$a\" != \"-print-multi-os-directory\" ]; then\n"
+                                  "    args+=(\"$a\")\n"
+                                  "  fi\n"
+                                  "done\n"
+                                  f"exec \"{real_path}\" \"${{args[@]}}\"\n"
+                              )
+                          os.chmod(full_path, 0o755)
           EOF
-          chmod +x /tmp/clang-wrap/clang
-          export PATH="/tmp/clang-wrap:$PATH"
           set +e
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?

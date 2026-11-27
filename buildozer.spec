@@ -20,7 +20,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy
+requirements = python3,kivy,charset-normalizer==3.3.2
 
 # (str) Custom source folders for requirements
 # requirements.source.kivy = ../../kivy
@@ -42,6 +42,7 @@ orientation = portrait
 #
 
 #
+
 # Android specific
 #
 
@@ -72,31 +73,3 @@ android.private_storage = True
 
 # (list) Permissions
 android.permissions = INTERNET
-
-# (list) features (adds uses-feature -xml to manifest)
-# android.features = android.hardware.type.watch
-
-# (int) launchMode to use for the activity
-# android.launchMode = singleTop
-
-# (str) Android logcat filters to use
-# android.logcat_filters = *:S python:D
-
-# (bool) Copy library instead of making a link
-# android.copy_libs = 1
-
-# (list) The Android archs to deploy for, doris/arm64-v8a/armeabi-v7a
-android.archs = arm64-v8a
-
-# (bool) enables Android auto backup feature (Android API >=23)
-android.allow_backup = True
-
-
-[buildozer]
-
-# (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = 2
-
-# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
-warn_on_root = 1
-

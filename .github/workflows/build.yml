@@ -27,7 +27,7 @@ jobs:
       - name: Install Buildozer and Cython
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install "cython==0.29.36" buildozer
+          python -m pip install "cython==0.29.35" buildozer
 
       - name: Setup SDK and NDK
         env:
@@ -172,3 +172,4 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

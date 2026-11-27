@@ -26,8 +26,6 @@ jobs:
 
       - name: Install Buildozer and Cython
         run: |
-          printf "charset-normalizer<3.5.0\n" > /tmp/constraints.txt
-          echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython==0.29.36" buildozer
 
@@ -63,6 +61,8 @@ jobs:
             sed -i 's|^#*android.minapi\s*=.*|android.minapi = 24|' buildozer.spec
             sed -i 's|^#*android.ndk\s*=.*|android.ndk = 27.2.12479018|' buildozer.spec
             sed -i 's|^#*android.accept_sdk_license\s*=.*|android.accept_sdk_license = True|' buildozer.spec
+            sed -i 's|kivy==2\.3\.1|kivy==2.3.0|g' buildozer.spec
+            sed -i 's|pyjnius==1\.7\.0|pyjnius|g' buildozer.spec
             if grep -q '^#*p4a.branch' buildozer.spec; then
               sed -i 's|^#*p4a.branch\s*=.*|p4a.branch = master|' buildozer.spec
             else
@@ -92,6 +92,7 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
         run: |
+          unset PIP_CONSTRAINT || true
           export PATH="$JAVA_HOME/bin:$PATH"
           mkdir -p /tmp/clang-wrap
           cat <<'EOF' > /tmp/clang-wrap/clang
@@ -139,4 +140,3 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
-

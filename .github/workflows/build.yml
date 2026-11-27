@@ -22,14 +22,14 @@ jobs:
       - name: Install system tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake autoconf-archive libtool libltdl7 pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 cmake libffi-dev
+          sudo apt-get install -y --reinstall autoconf automake autoconf-archive libtool libltdl7 pkg-config
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip libssl-dev zlib1g-dev libncurses5-dev libncursesw6 libtinfo6 cmake libffi-dev
 
       - name: Install Buildozer and Cython
         run: |
           printf "charset-normalizer<3.5.0\ncyberthon<3.0\n" > /tmp/constraints.txt
           echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
-          SYS_ACLOCAL="$(aclocal --print-ac-dir 2>/dev/null || true)"
-          echo "ACLOCAL_PATH=/usr/share/aclocal${SYS_ACLOCAL:+:$SYS_ACLOCAL}" >> $GITHUB_ENV
+          echo "ACLOCAL_PATH=/usr/share/aclocal" >> $GITHUB_ENV
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install "cython==0.29.36" buildozer
 
@@ -96,3 +96,4 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

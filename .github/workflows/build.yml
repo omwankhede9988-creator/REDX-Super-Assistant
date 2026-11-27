@@ -22,7 +22,7 @@ jobs:
       - name: Install system tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libtool-bin libltdl-dev pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
 
       - name: Install Buildozer and Cython
         run: |
@@ -65,6 +65,7 @@ jobs:
       - name: Build Android APK
         run: |
           set +e
+          export ACLOCAL_PATH="/usr/share/aclocal"
           echo "charset-normalizer<3.5.0" > /tmp/constraints.txt
           export PIP_CONSTRAINT="/tmp/constraints.txt"
           buildozer android debug 2>&1 | tee /tmp/buildozer.log
@@ -72,7 +73,7 @@ jobs:
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
             echo "===== KEY ERROR LINES ====="
-            grep -i -E "^error:|error: |no matching distribution|could not find|fatal error|command failed|not a supported wheel|http error 404|sdkmanager" /tmp/buildozer.log | grep -v "performance hint" | tail -n 30 || true
+            grep -i -E "^error:|error: |no matching distribution|could not find|fatal error|command failed|not a supported wheel|http error 404|sdkmanager|autoreconf|undefined macro" /tmp/buildozer.log | grep -v "performance hint" | tail -n 30 || true
             echo "===== LAST 40 LINES ====="
             tail -n 40 /tmp/buildozer.log > error_tail.txt
             cat error_tail.txt

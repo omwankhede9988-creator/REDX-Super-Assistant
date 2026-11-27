@@ -35,7 +35,10 @@ jobs:
         env:
           ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
           ANDROID_NDK_ROOT: /home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
         run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
+          sudo update-java-alternatives -s java-1.17.0-openjdk-amd64 || true
           rm -rf .buildozer ~/.buildozer
           mkdir -p ~/.buildozer/android/platform
           mkdir -p "$ANDROID_NDK_ROOT"
@@ -62,8 +65,29 @@ jobs:
             sed -i 's|^#*android.accept_sdk_license\s*=.*|android.accept_sdk_license = True|' buildozer.spec
           fi
 
-      - name: Build Android APK
+      - name: Patch libffi recipe before build
         run: |
+          python3 - <<'EOF'
+          import glob, os
+
+          for path in glob.glob(os.path.expanduser("~/.buildozer/**/recipes/libffi/__init__.py"), recursive=True) + glob.glob(".buildozer/**/recipes/libffi/__init__.py", recursive=True):
+              with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                  content = f.read()
+              if "libtoolize" not in content and "autoreconf" in content:
+                  patched = content.replace(
+                      'shprint(sh.autoreconf, "-vif"',
+                      'shprint(sh.libtoolize, "--force", "--copy"); shprint(sh.autoreconf, "-vif"'
+                  )
+                  with open(path, "w", encoding="utf-8") as f:
+                      f.write(patched)
+                  print("Patched:", path)
+          EOF
+
+      - name: Build Android APK
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+        run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
           set +e
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?
@@ -93,3 +117,4 @@ jobs:
           name: REDX-error-log
           path: error_tail.txt
           if-no-files-found: ignore
+

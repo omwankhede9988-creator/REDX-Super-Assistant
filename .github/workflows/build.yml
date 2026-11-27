@@ -27,7 +27,7 @@ jobs:
       - name: Install Buildozer and Cython
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install "cython==0.29.33" buildozer
+          python -m pip install "cython==0.29.36" buildozer
 
       - name: Setup SDK and NDK
         env:
@@ -73,7 +73,7 @@ jobs:
           else:
               text += "\np4a.branch = master\n"
 
-          safe_reqs = "requirements = python3,kivy==2.3.0,pyjnius,requests,urllib3,charset-normalizer"
+          safe_reqs = "requirements = python3,kivy==2.2.1,pyjnius,requests,urllib3,charset-normalizer"
           lines = text.splitlines()
           new_lines = []
           skip_multiline = False
@@ -162,30 +162,6 @@ jobs:
           set +e
           buildozer android debug > /tmp/buildozer.log 2>&1
           EXIT_CODE=$?
-          if [ "$EXIT_CODE" -ne 0 ] && grep -q "weakproxy.c:17799:87: error: too few arguments to function call" /tmp/buildozer.log; then
-            python3 - <<'EOF'
-          import glob
-
-          for path in glob.glob(".buildozer/**/kivy/weakproxy.c", recursive=True):
-              with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                  lines = f.readlines()
-              start = max(0, 17795)
-              end = min(len(lines), 17804)
-              print(f"--- {path} ({start+1}..{end}) ---")
-              for i in range(start, end):
-                  print(f"{i+1}: {lines[i]}", end="")
-              if len(lines) >= 17799:
-                  idx = 17798
-                  rparen = lines[idx].rfind(")")
-                  if rparen != -1:
-                      lines[idx] = lines[idx][:rparen] + ", NULL" + lines[idx][rparen:]
-                      with open(path, "w", encoding="utf-8") as f:
-                          f.writelines(lines)
-                      print("Patched line 17799 with , NULL")
-          EOF
-            buildozer android debug >> /tmp/buildozer.log 2>&1
-            EXIT_CODE=$?
-          fi
           set -e
           if [ "$EXIT_CODE" -ne 0 ]; then
             echo "=== ACTUAL ERRORS ==="

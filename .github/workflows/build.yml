@@ -159,10 +159,48 @@ jobs:
           EOF
           chmod +x /tmp/clang-wrap/clang
           export PATH="/tmp/clang-wrap:$PATH"
-          set +e
-          buildozer android debug > /tmp/buildozer.log 2>&1
-          EXIT_CODE=$?
-          set -e
+
+          for attempt in 1 2 3; do
+            set +e
+            buildozer android debug > /tmp/buildozer.log 2>&1
+            EXIT_CODE=$?
+            set -e
+            if [ "$EXIT_CODE" -eq 0 ]; then
+              break
+            fi
+
+            python3 - <<'EOF'
+          import glob, re
+
+          fixed_any = False
+          with open("/tmp/buildozer.log", "r", encoding="utf-8", errors="ignore") as lf:
+              log_text = lf.read()
+
+          for m in re.finditer(r'([^\s:]+\.c):(\d+):\d+:\s*error:\s*too few arguments to function call,\s*expected\s+6,\s*have\s+5', log_text):
+              cpath = m.group(1)
+              lineno = int(m.group(2))
+              if not cpath.startswith("/"):
+                  cpath = os.path.abspath(cpath) if "os" in globals() else cpath
+              candidates = glob.glob(cpath) or glob.glob("**/" + cpath.split("/")[-1], recursive=True)
+              for fp in candidates:
+                  try:
+                      with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                          lines = f.readlines()
+                      if 1 <= lineno <= len(lines):
+                          idx = lineno - 1
+                          rparen = lines[idx].rfind(")")
+                          if rparen != -1 and ", NULL" not in lines[idx]:
+                              lines[idx] = lines[idx][:rparen] + ", NULL" + lines[idx][rparen:]
+                              with open(fp, "w", encoding="utf-8") as f:
+                                  f.writelines(lines)
+                              print(f"Patched {fp}:{lineno}")
+                              fixed_any = True
+                  except Exception as e:
+                      print("Skip patch:", e)
+          print("fixed_any =", fixed_any)
+          EOF
+          done
+
           if [ "$EXIT_CODE" -ne 0 ]; then
             echo "=== ACTUAL ERRORS ==="
             grep -i -E "error:|fatal error:|undefined reference|no such file or directory|command failed|failed with e" /tmp/buildozer.log | head -n 60 || true

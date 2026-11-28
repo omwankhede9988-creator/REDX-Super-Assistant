@@ -59,8 +59,10 @@ jobs:
                   new_lines.append("android.minapi = 21")
               elif stripped.startswith("android.ndk"):
                   new_lines.append("android.ndk = 25c")
+              elif stripped.startswith("android.archs"):
+                  new_lines.append("android.archs = arm64-v8a")
               elif stripped.startswith("log_level"):
-                  new_lines.append("log_level = 2")
+                  new_lines.append("log_level = 1")
               else:
                   new_lines.append(line)
 

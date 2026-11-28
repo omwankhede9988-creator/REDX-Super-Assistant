@@ -47,6 +47,8 @@ jobs:
           clean_reqs = "python3,kivy,pyjnius,requests,urllib3,charset-normalizer"
           updated_reqs = False
           updated_license = False
+          updated_androidx = False
+          updated_p4a_branch = False
           new_lines = []
 
           for line in lines:
@@ -65,6 +67,12 @@ jobs:
               elif stripped.startswith("android.accept_sdk_license"):
                   new_lines.append("android.accept_sdk_license = True")
                   updated_license = True
+              elif stripped.startswith("android.enable_androidx"):
+                  new_lines.append("android.enable_androidx = True")
+                  updated_androidx = True
+              elif stripped.startswith("p4a.branch"):
+                  new_lines.append("p4a.branch = develop")
+                  updated_p4a_branch = True
               elif stripped.startswith("log_level"):
                   new_lines.append("log_level = 1")
               else:
@@ -74,6 +82,10 @@ jobs:
               new_lines.append(f"requirements = {clean_reqs}")
           if not updated_license:
               new_lines.append("android.accept_sdk_license = True")
+          if not updated_androidx:
+              new_lines.append("android.enable_androidx = True")
+          if not updated_p4a_branch:
+              new_lines.append("p4a.branch = develop")
 
           spec_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
           EOF

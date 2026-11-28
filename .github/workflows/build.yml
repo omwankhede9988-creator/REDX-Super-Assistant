@@ -57,7 +57,7 @@ jobs:
                   new_lines.append(f"requirements = {clean_reqs}")
                   updated_reqs = True
               elif stripped.startswith("android.api"):
-                  new_lines.append("android.api = 33")
+                  new_lines.append("android.api = 31")
               elif stripped.startswith("android.minapi"):
                   new_lines.append("android.minapi = 21")
               elif stripped.startswith("android.ndk"):

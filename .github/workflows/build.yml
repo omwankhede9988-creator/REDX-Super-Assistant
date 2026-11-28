@@ -19,202 +19,77 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install system tools
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
+            lld llvm clang ccache
 
       - name: Install Buildozer and Cython
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install "cython==3.0.11" buildozer
-
-      - name: Setup SDK and NDK
-        env:
-          ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
-          ANDROID_NDK_ROOT: /home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-        run: |
-          export PATH="$JAVA_HOME/bin:$PATH"
-          sudo update-java-alternatives -s java-1.17.0-openjdk-amd64 || true
-          rm -rf .buildozer ~/.buildozer
-          mkdir -p ~/.buildozer/android/platform
-          mkdir -p "$ANDROID_NDK_ROOT"
-          curl -fL --retry 5 --retry-delay 5 -o /tmp/cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-extracted
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          mv /tmp/cmdline-extracted/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
-          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" ~/.buildozer/android/platform/android-sdk/tools/bin/avdmanager
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses || true
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;27.2.12479018"
-          if [ -d "$ANDROID_SDK_ROOT/ndk/27.2.12479018" ]; then
-            ln -sfn "$ANDROID_SDK_ROOT/ndk/27.2.12479018"/* "$ANDROID_NDK_ROOT/"
-          fi
-          ln -sfn "$ANDROID_NDK_ROOT" ~/.buildozer/android/platform/android-ndk-r27.2.12479018
+          pip install --upgrade buildozer "cython<3.1"
 
       - name: Configure buildozer.spec
         run: |
-          python3 - <<'EOF'
-          import glob, re
+          python - << 'EOF'
+          from pathlib import Path
 
-          for req_file in glob.glob("**/requirements*.txt", recursive=True) + ["requirements.txt", "pyproject.toml", "setup.py"]:
-              try:
-                  with open(req_file, "r", encoding="utf-8", errors="ignore") as rf:
-                      rtxt = rf.read()
-                  cleaned = re.sub(r'(?im)^[^\n]*(pyjnius==1\.7\.0|^android\b)[^\n]*\n?', '', rtxt)
-                  if cleaned != rtxt:
-                      with open(req_file, "w", encoding="utf-8") as rf:
-                          rf.write(cleaned)
-                      print("Cleaned bad reqs in:", req_file)
-              except FileNotFoundError:
-                  pass
+          spec_path = Path("buildozer.spec")
+          if not spec_path.exists():
+              raise FileNotFoundError("buildozer.spec not found in repository root")
 
-          spec_path = "buildozer.spec"
-          with open(spec_path, "r", encoding="utf-8", errors="ignore") as f:
-              text = f.read()
+          content = spec_path.read_text(encoding="utf-8")
+          lines = content.splitlines()
 
-          text = re.sub(r'(?m)^#?\s*android\.api\s*=.*', 'android.api = 34', text)
-          text = re.sub(r'(?m)^#?\s*android\.minapi\s*=.*', 'android.minapi = 24', text)
-          text = re.sub(r'(?m)^#?\s*android\.ndk\s*=.*', 'android.ndk = 27.2.12479018', text)
-          text = re.sub(r'(?m)^#?\s*android\.accept_sdk_license\s*=.*', 'android.accept_sdk_license = True', text)
-
-          if re.search(r'(?m)^#?\s*p4a\.branch\s*=', text):
-              text = re.sub(r'(?m)^#?\s*p4a\.branch\s*=.*', 'p4a.branch = master', text)
-          else:
-              text += "\np4a.branch = master\n"
-
-          safe_reqs = "requirements = python3,kivy==2.3.0,pyjnius,requests,urllib3,charset-normalizer"
-          lines = text.splitlines()
+          clean_reqs = "python3,kivy,pyjnius,requests,urllib3,charset-normalizer"
+          updated = False
           new_lines = []
-          skip_multiline = False
-          replaced_req = False
+
           for line in lines:
-              stripped = line.lstrip()
-              if re.match(r'^#?\s*requirements\s*=', stripped):
-                  new_lines.append(safe_reqs)
-                  replaced_req = True
-                  skip_multiline = line.rstrip().endswith(",") or line.rstrip().endswith("\\")
-                  continue
-              if skip_multiline:
-                  if line.rstrip().endswith(",") or line.rstrip().endswith("\\"):
-                      continue
-                  skip_multiline = False
-                  continue
-              new_lines.append(line)
+              stripped = line.strip()
+              if stripped.startswith("requirements"):
+                  new_lines.append(f"requirements = {clean_reqs}")
+                  updated = True
+              elif stripped.startswith("android.api"):
+                  new_lines.append("android.api = 34")
+              elif stripped.startswith("android.minapi"):
+                  new_lines.append("android.minapi = 24")
+              elif stripped.startswith("android.ndk"):
+                  new_lines.append("android.ndk = 27.2.12479018")
+              elif stripped.startswith("log_level"):
+                  new_lines.append("log_level = 2")
+              else:
+                  new_lines.append(line)
 
-          if not replaced_req:
-              new_lines.append(safe_reqs)
+          if not updated:
+              new_lines.append(f"requirements = {clean_reqs}")
 
-          with open(spec_path, "w", encoding="utf-8") as f:
-              f.write("\n".join(new_lines) + "\n")
-          for ln in new_lines:
-              if ln.startswith("requirements"):
-                  print("SPEC LINE:", ln)
-          EOF
-
-      - name: Patch libffi recipe before build
-        run: |
-          python3 - <<'EOF'
-          import glob, os
-
-          for path in glob.glob(os.path.expanduser("~/.buildozer/**/recipes/libffi/__init__.py"), recursive=True) + glob.glob(".buildozer/**/recipes/libffi/__init__.py", recursive=True):
-              with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                  content = f.read()
-              if "libtoolize" not in content and "autoreconf" in content:
-                  patched = content.replace(
-                      'shprint(sh.autoreconf, "-vif"',
-                      'shprint(sh.libtoolize, "--force", "--copy"); shprint(sh.autoreconf, "-vif"'
-                  )
-                  with open(path, "w", encoding="utf-8") as f:
-                      f.write(patched)
-                  print("Patched:", path)
+          spec_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
           EOF
 
       - name: Build Android APK
         env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
         run: |
           unset PIP_CONSTRAINT || true
-          export PATH="$JAVA_HOME/bin:$PATH"
-          mkdir -p /tmp/clang-wrap
-          ndk_bin="/home/runner/.buildozer/android/platform/android-ndk-r27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          if [ -d "$ndk_bin" ]; then
-            for tool in "$ndk_bin"/*clang*; do
-              [ -f "$tool" ] || continue
-              tname="$(basename "$tool")"
-              cat <<EOF > "/tmp/clang-wrap/$tname"
-          #!/usr/bin/env bash
-          filtered=()
-          for arg in "\$@"; do
-            if [ "\$arg" != "-print-multi-os-directory" ]; then
-              filtered+=("\$arg")
-            fi
-          done
-          exec "$tool" "\${filtered[@]}"
-          EOF
-              chmod +x "/tmp/clang-wrap/$tname"
-            done
-          fi
-          cat <<'EOF' > /tmp/clang-wrap/clang
-          #!/usr/bin/env bash
-          filtered=()
-          for arg in "$@"; do
-            if [ "$arg" != "-print-multi-os-directory" ]; then
-              filtered+=("$arg")
-            fi
-          done
-          real_clang="$(command -v -p clang | grep -v '^/tmp/clang-wrap/' | head -n 1)"
-          if [ -z "$real_clang" ]; then
-            real_clang="/usr/bin/clang"
-          fi
-          exec "$real_clang" "${filtered[@]}"
-          EOF
-          chmod +x /tmp/clang-wrap/clang
-          export PATH="/tmp/clang-wrap:$PATH"
-
-          set +e
-          buildozer android debug > /tmp/buildozer.log 2>&1
-          EXIT_CODE=$?
-          set -e
-
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            python3 - <<'EOF'
-          import re
-
-          with open("/tmp/buildozer.log", "r", encoding="utf-8", errors="ignore") as f:
-              lines = f.readlines()
-
-          print("=== ACTUAL ERRORS ===")
-          pat = re.compile(r'(fatal error:|undefined reference|no such file or directory|command failed|failed with e|ModuleNotFoundError|Could not find a version)', re.I)
-          hits = [ln.rstrip() for ln in lines if pat.search(ln)]
-          for ln in hits[-35:]:
-              print(ln)
-
-          print("=== TAIL OF LOG ===")
-          tail_lines = lines[-80:]
-          with open("error_tail.txt", "w", encoding="utf-8") as out:
-              out.writelines(tail_lines)
-          print("".join(tail_lines), end="")
-          EOF
-            exit "$EXIT_CODE"
-          fi
-          find . -maxdepth 4 -name "*.apk"
+          buildozer android debug
 
       - name: Upload APK artifact
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: REDX-APK
-          path: "**/*.apk"
-          if-no-files-found: warn
+          name: redx-apk
+          path: bin/*.apk
+          if-no-files-found: ignore
 
       - name: Upload error log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: REDX-error-log
-          path: error_tail.txt
+          name: buildozer-logs
+          path: .buildozer/logs/*.txt
           if-no-files-found: ignore
-

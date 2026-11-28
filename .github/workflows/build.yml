@@ -45,37 +45,35 @@ jobs:
           lines = content.splitlines()
 
           clean_reqs = "python3,kivy,pyjnius,requests,urllib3,charset-normalizer"
-          updated = False
+          updated_reqs = False
           new_lines = []
 
           for line in lines:
               stripped = line.strip()
               if stripped.startswith("requirements"):
                   new_lines.append(f"requirements = {clean_reqs}")
-                  updated = True
+                  updated_reqs = True
               elif stripped.startswith("android.api"):
-                  new_lines.append("android.api = 34")
+                  new_lines.append("android.api = 33")
               elif stripped.startswith("android.minapi"):
-                  new_lines.append("android.minapi = 24")
+                  new_lines.append("android.minapi = 21")
               elif stripped.startswith("android.ndk"):
-                  new_lines.append("android.ndk = 27.2.12479018")
+                  new_lines.append("android.ndk = 25c")
               elif stripped.startswith("log_level"):
                   new_lines.append("log_level = 2")
               else:
                   new_lines.append(line)
 
-          if not updated:
+          if not updated_reqs:
               new_lines.append(f"requirements = {clean_reqs}")
 
           spec_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
           EOF
 
       - name: Build Android APK
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
         run: |
           unset PIP_CONSTRAINT || true
+          unset ANDROID_HOME ANDROID_SDK_ROOT ANDROID_NDK_HOME || true
           buildozer android debug
 
       - name: Upload APK artifact
@@ -93,3 +91,4 @@ jobs:
           name: buildozer-logs
           path: .buildozer/logs/*.txt
           if-no-files-found: ignore
+
